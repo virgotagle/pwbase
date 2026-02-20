@@ -16,6 +16,8 @@ A lightweight async Playwright wrapper for Python that supports three browser la
 
 ## Installation
 
+Available on [PyPI](https://pypi.org/project/pwbase/).
+
 ```bash
 uv add pwbase
 # or
