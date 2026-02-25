@@ -108,11 +108,22 @@ class BrowserSessionExtractor(Browser):
         """
         Build an authenticated ``requests.Session`` from a captured response.
 
-        Applies request headers (dropping HTTP/2 pseudo-headers prefixed with ``:``)
-        and cookies from the captured response.
+        Applies request headers (dropping HTTP/2 pseudo-headers prefixed with ``:``
+        and the raw ``cookie`` header) and cookies from the captured response.
+
+        The ``cookie`` header is excluded because it contains the stale cookie values
+        from the original request. The fresh cookies captured after the response
+        (including any Set-Cookie updates) are applied via ``session.cookies`` instead,
+        which ``requests`` uses to build the correct Cookie header on each outgoing call.
         """
         session = requests.Session()
-        session.headers.update({k: v for k, v in response.request_headers.items() if not k.startswith(":")})
+        session.headers.update(
+            {
+                k: v
+                for k, v in response.request_headers.items()
+                if not k.startswith(":") and k.lower() != "cookie"
+            }
+        )
         for cookie in response.cookies:
             c = cast(dict[str, str], cookie)
             session.cookies.set(c["name"], c["value"], domain=c.get("domain"), path=c.get("path"))
