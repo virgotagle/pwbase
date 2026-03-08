@@ -50,9 +50,13 @@ class BrowserSessionExtractor(Browser):
         if "application/json" not in response.headers.get("content-type", ""):
             return
         try:
-            body = await response.json()
+            raw_body = await response.body()
+            body = json.loads(raw_body)
         except json.JSONDecodeError:
             self.logger.warning("Failed to decode JSON from %s", response.url)
+            return
+        except Exception as e:
+            self.logger.warning("Failed to get response body from %s: %s", response.url, e)
             return
         if not self.context:
             self.logger.warning("No browser context available; skipping %s", response.url)

@@ -21,20 +21,16 @@ if [[ -z "$VERSION" ]]; then
 fi
 
 if [[ "$FLAG" == "--test" ]]; then
-  TWINE_REPO="https://test.pypi.org/legacy/"
+  TWINE_REPO="testpypi"
   TARGET="TestPyPI"
 else
-  TWINE_REPO="https://upload.pypi.org/legacy/"
+  TWINE_REPO="pypi"
   TARGET="PyPI"
 fi
 
-# Load .env if present
-if [[ -f ".env" ]]; then
-  echo "==> Loading credentials from .env..."
-  set -o allexport
-  source .env
-  set +o allexport
-fi
+# Credentials are read from ~/.pypirc by twine automatically.
+# Do NOT use a .env file in the project directory — it risks being
+# bundled into the source distribution and leaking secrets.
 
 echo "==> Bumping version to ${VERSION} in pyproject.toml..."
 sed -i '' "s/^version = .*/version = \"${VERSION}\"/" pyproject.toml
@@ -49,6 +45,6 @@ echo "==> Checking distribution with twine..."
 uv run twine check dist/*
 
 echo "==> Uploading to ${TARGET}..."
-uv run twine upload --repository-url "${TWINE_REPO}" dist/*
+uv run twine upload --repository "${TWINE_REPO}" dist/*
 
 echo "==> Done! Version ${VERSION} published to ${TARGET}."
