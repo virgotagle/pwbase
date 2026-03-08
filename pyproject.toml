@@ -1,6 +1,6 @@
 [project]
 name = "pwbase"
-version = "0.1.1"
+version = "0.1.6"
 description = "A lightweight async Playwright wrapper for Python that supports three browser launch strategies and can intercept authenticated HTTP sessions from live browser traffic."
 readme = "README.md"
 license = { file = "LICENSE" }
