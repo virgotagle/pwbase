@@ -47,49 +47,62 @@ class BrowserSessionExtractor(Browser):
             self._page = None
 
     async def _handle_response(self, response: Response) -> None:
-        if "application/json" not in response.headers.get("content-type", ""):
-            return
         try:
-            raw_body = await response.body()
-            body = json.loads(raw_body)
-        except json.JSONDecodeError:
-            self.logger.warning("Failed to decode JSON from %s", response.url)
-            return
-        except Exception as e:
-            self.logger.warning("Failed to get response body from %s: %s", response.url, e)
-            return
-        if not self.context:
-            self.logger.warning("No browser context available; skipping %s", response.url)
-            return
-        cookies: list[Cookie] = await self.context.cookies(response.url)
-        self.responses.append(
-            CapturedResponse(
-                url=response.url,
-                method=response.request.method,
-                headers=dict(await response.all_headers()),
-                body=body,
-                request_headers=dict(await response.request.all_headers()),
-                request_post_data=response.request.post_data,
-                cookies=cookies,
+            if "application/json" not in response.headers.get("content-type", ""):
+                return
+            try:
+                raw_body = await response.body()
+                body = json.loads(raw_body)
+            except json.JSONDecodeError:
+                self.logger.debug("Failed to decode JSON from %s", response.url)
+                return
+            except Exception as e:
+                self.logger.debug(
+                    "Failed to get response body from %s: %s", response.url, e
+                )
+                return
+            if not self.context:
+                self.logger.warning(
+                    "No browser context available; skipping %s", response.url
+                )
+                return
+            cookies: list[Cookie] = await self.context.cookies(response.url)
+            self.responses.append(
+                CapturedResponse(
+                    url=response.url,
+                    method=response.request.method,
+                    headers=dict(await response.all_headers()),
+                    body=body,
+                    request_headers=dict(await response.request.all_headers()),
+                    request_post_data=response.request.post_data,
+                    cookies=cookies,
+                )
             )
-        )
+        except Exception as e:
+            self.logger.debug("Error in response handler: %s", e)
 
     def find_response(self, url_contains: str) -> CapturedResponse | None:
         """Return the most recent captured response whose URL contains ``url_contains``."""
-        return next((r for r in reversed(self.responses) if url_contains in r.url), None)
+        return next(
+            (r for r in reversed(self.responses) if url_contains in r.url), None
+        )
 
     def find_all_responses(self, url_contains: str) -> list[CapturedResponse]:
         """Return all captured responses whose URL contains ``url_contains``."""
         return [r for r in self.responses if url_contains in r.url]
 
-    async def wait_for_response(self, url_contains: str, timeout: int = 1) -> CapturedResponse:
+    async def wait_for_response(
+        self, url_contains: str, timeout: int = 1
+    ) -> CapturedResponse:
         """
         Poll until a matching response is captured.
 
         ``timeout`` controls the poll interval in seconds, not a hard deadline.
         """
         if not self._page:
-            raise RuntimeError("No page is being recorded. Call start_recording() first.")
+            raise RuntimeError(
+                "No page is being recorded. Call start_recording() first."
+            )
         captured = self.find_response(url_contains)
         while not captured:
             await self._page.wait_for_timeout(1000 * timeout)
