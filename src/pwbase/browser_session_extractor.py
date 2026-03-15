@@ -116,3 +116,62 @@ class BrowserSessionExtractor(Browser):
         This delegates to ``CapturedResponse.to_session()``.
         """
         return response.to_session()
+
+
+_DEFAULT_EXCLUDED_CONTENT_TYPES = (
+    "text/css",
+    "text/javascript",
+    "application/javascript",
+    "application/x-javascript",
+    "image/",
+    "font/",
+)
+
+
+class AllRequestExtractor(BrowserSessionExtractor):
+    def __init__(
+        self,
+        config: BrowserConfig | None = None,
+        exclude_content_types: tuple[str, ...]
+        | list[str] = _DEFAULT_EXCLUDED_CONTENT_TYPES,
+    ):
+        super().__init__(config)
+        self.exclude_content_types = tuple(exclude_content_types)
+
+    async def _handle_response(self, response: Response) -> None:
+        try:
+            if response.request.method.upper() not in ("GET", "POST"):
+                return
+            content_type = response.headers.get("content-type", "")
+            if any(exc in content_type for exc in self.exclude_content_types):
+                return
+            try:
+                raw_body = await response.body()
+                if "application/json" in content_type:
+                    body: dict | list | str | None = json.loads(raw_body)
+                else:
+                    body = raw_body.decode("utf-8", errors="replace")
+            except Exception as e:
+                self.logger.debug(
+                    "Failed to get response body from %s: %s", response.url, e
+                )
+                return
+            if not self.context:
+                self.logger.warning(
+                    "No browser context available; skipping %s", response.url
+                )
+                return
+            cookies: list[Cookie] = await self.context.cookies(response.url)
+            self.responses.append(
+                CapturedResponse(
+                    url=response.url,
+                    method=response.request.method,
+                    headers=dict(await response.all_headers()),
+                    body=body,
+                    request_headers=dict(await response.request.all_headers()),
+                    request_post_data=response.request.post_data,
+                    cookies=cookies,
+                )
+            )
+        except Exception as e:
+            self.logger.debug("Error in response handler: %s", e)

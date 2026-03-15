@@ -20,7 +20,7 @@ class CapturedResponse:
     url: str
     method: str
     headers: dict[str, str]
-    body: dict | list | None
+    body: dict | list | str | None
     request_headers: dict[str, str]
     request_post_data: str | None = None
     cookies: list[Cookie] = field(default_factory=list)
@@ -117,7 +117,9 @@ class CapturedResponse:
             raise ValueError("'headers' must be an object")
         if not isinstance(data["request_headers"], dict):
             raise ValueError("'request_headers' must be an object")
-        if data["request_post_data"] is not None and not isinstance(data["request_post_data"], str):
+        if data["request_post_data"] is not None and not isinstance(
+            data["request_post_data"], str
+        ):
             raise ValueError("'request_post_data' must be a string or null")
         if not isinstance(data["cookies"], list):
             raise ValueError("'cookies' must be an array")
@@ -128,7 +130,9 @@ class CapturedResponse:
         for cookie in data["cookies"]:
             if not isinstance(cookie, dict):
                 raise ValueError("Each cookie must be an object")
-            if not isinstance(cookie.get("name"), str) or not isinstance(cookie.get("value"), str):
+            if not isinstance(cookie.get("name"), str) or not isinstance(
+                cookie.get("value"), str
+            ):
                 raise ValueError("Each cookie must include string 'name' and 'value'")
             normalized_cookies.append(cast(Cookie, cookie))
 
