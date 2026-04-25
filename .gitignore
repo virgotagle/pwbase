@@ -11,3 +11,4 @@ wheels/
 settings.json
 
 .env
+.github/prompts/release-project.prompt.md
