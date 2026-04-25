@@ -56,7 +56,7 @@ class BrowserSessionExtractor(Browser):
             except json.JSONDecodeError:
                 self.logger.debug("Failed to decode JSON from %s", response.url)
                 return
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.debug(
                     "Failed to get response body from %s: %s", response.url, e
                 )
@@ -78,7 +78,7 @@ class BrowserSessionExtractor(Browser):
                     cookies=cookies,
                 )
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.debug("Error in response handler: %s", e)
 
     def find_response(self, url_contains: str) -> CapturedResponse | None:
@@ -151,7 +151,7 @@ class AllRequestExtractor(BrowserSessionExtractor):
                     body: dict | list | str | None = json.loads(raw_body)
                 else:
                     body = raw_body.decode("utf-8", errors="replace")
-            except Exception as e:
+            except Exception as e:  # pylint: disable=broad-exception-caught
                 self.logger.debug(
                     "Failed to get response body from %s: %s", response.url, e
                 )
@@ -173,5 +173,5 @@ class AllRequestExtractor(BrowserSessionExtractor):
                     cookies=cookies,
                 )
             )
-        except Exception as e:
+        except Exception as e:  # pylint: disable=broad-exception-caught
             self.logger.debug("Error in response handler: %s", e)

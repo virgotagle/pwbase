@@ -26,7 +26,9 @@ pytestmark = pytest.mark.asyncio
 
 
 def _extractor(**kwargs) -> BrowserSessionExtractor:
-    return BrowserSessionExtractor(BrowserConfig(type=BrowserType.DEFAULT, headless=True, **kwargs))
+    return BrowserSessionExtractor(
+        BrowserConfig(type=BrowserType.DEFAULT, headless=True, **kwargs)
+    )
 
 
 def _response(**kwargs) -> CapturedResponse:
@@ -69,12 +71,16 @@ def _json_handler(body: dict):
     breaks — ``b`` gets overwritten with the ``Request`` object.  This factory
     creates a proper closure so the handler has exactly one parameter.
     """
+
     async def handler(route):
         await _route_json(route, body)
+
     return handler
 
 
-async def _goto_and_wait(page, url: str, extractor: "BrowserSessionExtractor", expected: int = 1) -> None:
+async def _goto_and_wait(
+    page, url: str, extractor: "BrowserSessionExtractor", expected: int = 1
+) -> None:
     """Navigate to ``url`` and poll until ``extractor.responses`` reaches ``expected`` length.
 
     Playwright fires the "response" event and schedules ``_handle_response`` as
@@ -194,7 +200,12 @@ class TestPureInMemory:
     async def test_to_session_copies_request_headers(self):
         """to_session copies non-pseudo request headers onto the session."""
         extractor = _extractor()
-        resp = _response(request_headers={"authorization": "Bearer abc", "accept": "application/json"})
+        resp = _response(
+            request_headers={
+                "authorization": "Bearer abc",
+                "accept": "application/json",
+            }
+        )
         session = extractor.to_session(resp)
         assert session.headers["authorization"] == "Bearer abc"
         assert session.headers["accept"] == "application/json"
@@ -202,7 +213,13 @@ class TestPureInMemory:
     async def test_to_session_filters_pseudo_headers(self):
         """HTTP/2 pseudo-headers (prefixed with ':') are excluded from the session."""
         extractor = _extractor()
-        resp = _response(request_headers={":method": "GET", ":path": "/", "authorization": "Bearer x"})
+        resp = _response(
+            request_headers={
+                ":method": "GET",
+                ":path": "/",
+                "authorization": "Bearer x",
+            }
+        )
         session = extractor.to_session(resp)
         assert ":method" not in session.headers
         assert ":path" not in session.headers
@@ -210,19 +227,28 @@ class TestPureInMemory:
     async def test_to_session_sets_cookies(self):
         """to_session populates the cookie jar from captured cookies."""
         extractor = _extractor()
-        resp = _response(cookies=[
-            {"name": "session", "value": "abc123", "domain": ".example.com", "path": "/"},
-        ])
+        resp = _response(
+            cookies=[
+                {
+                    "name": "session",
+                    "value": "abc123",
+                    "domain": ".example.com",
+                    "path": "/",
+                },
+            ]
+        )
         session = extractor.to_session(resp)
         assert session.cookies.get("session") == "abc123"
 
     async def test_to_session_multiple_cookies(self):
         """All captured cookies are added to the session cookie jar."""
         extractor = _extractor()
-        resp = _response(cookies=[
-            {"name": "a", "value": "1", "domain": ".example.com", "path": "/"},
-            {"name": "b", "value": "2", "domain": ".example.com", "path": "/"},
-        ])
+        resp = _response(
+            cookies=[
+                {"name": "a", "value": "1", "domain": ".example.com", "path": "/"},
+                {"name": "b", "value": "2", "domain": ".example.com", "path": "/"},
+            ]
+        )
         session = extractor.to_session(resp)
         assert session.cookies.get("a") == "1"
         assert session.cookies.get("b") == "2"
@@ -276,8 +302,10 @@ class TestRecordingReal:
             page = await extractor.get_page()
             payload = {"hello": "world", "count": 42}
 
-            await page.route("https://test.internal/api/data",
-                             lambda route: _route_json(route, payload))
+            await page.route(
+                "https://test.internal/api/data",
+                lambda route: _route_json(route, payload),
+            )
             await extractor.start_recording(page)
             await _goto_and_wait(page, "https://test.internal/api/data", extractor)
 
@@ -291,8 +319,9 @@ class TestRecordingReal:
         async with _extractor() as extractor:
             page = await extractor.get_page()
 
-            await page.route("https://test.internal/api/item",
-                             lambda route: _route_json(route, {}))
+            await page.route(
+                "https://test.internal/api/item", lambda route: _route_json(route, {})
+            )
             await extractor.start_recording(page)
             await _goto_and_wait(page, "https://test.internal/api/item", extractor)
 
@@ -303,8 +332,9 @@ class TestRecordingReal:
         async with _extractor() as extractor:
             page = await extractor.get_page()
 
-            await page.route("https://test.internal/page",
-                             lambda route: _route_html(route))
+            await page.route(
+                "https://test.internal/page", lambda route: _route_html(route)
+            )
             await extractor.start_recording(page)
             await page.goto("https://test.internal/page")
 
@@ -332,16 +362,24 @@ class TestRecordingReal:
         async with _extractor() as extractor:
             page = await extractor.get_page()
 
-            await page.route("https://test.internal/api/first",
-                             lambda route: _route_json(route, {"n": 1}))
-            await page.route("https://test.internal/api/second",
-                             lambda route: _route_json(route, {"n": 2}))
+            await page.route(
+                "https://test.internal/api/first",
+                lambda route: _route_json(route, {"n": 1}),
+            )
+            await page.route(
+                "https://test.internal/api/second",
+                lambda route: _route_json(route, {"n": 2}),
+            )
 
             await extractor.start_recording(page)
-            await _goto_and_wait(page, "https://test.internal/api/first", extractor, expected=1)
+            await _goto_and_wait(
+                page, "https://test.internal/api/first", extractor, expected=1
+            )
             extractor.stop_recording()
             await page.goto("https://test.internal/api/second")
-            await asyncio.sleep(0.1)  # give the (detached) handler a chance to (not) fire
+            await asyncio.sleep(
+                0.1
+            )  # give the (detached) handler a chance to (not) fire
 
             assert len(extractor.responses) == 1
             assert extractor.responses[0].body == {"n": 1}
@@ -351,8 +389,10 @@ class TestRecordingReal:
         async with _extractor() as extractor:
             page = await extractor.get_page()
 
-            await page.route("https://test.internal/api/users",
-                             lambda route: _route_json(route, {"users": []}))
+            await page.route(
+                "https://test.internal/api/users",
+                lambda route: _route_json(route, {"users": []}),
+            )
             await extractor.start_recording(page)
             await _goto_and_wait(page, "https://test.internal/api/users", extractor)
 
@@ -365,10 +405,14 @@ class TestRecordingReal:
         async with _extractor() as extractor:
             page = await extractor.get_page()
 
-            await page.route("https://test.internal/api/a",
-                             lambda route: _route_json(route, {"a": 1}))
+            await page.route(
+                "https://test.internal/api/a",
+                lambda route: _route_json(route, {"a": 1}),
+            )
             await extractor.start_recording(page)
-            await _goto_and_wait(page, "https://test.internal/api/a", extractor, expected=1)
+            await _goto_and_wait(
+                page, "https://test.internal/api/a", extractor, expected=1
+            )
             assert len(extractor.responses) == 1
 
             # Second start_recording resets the list

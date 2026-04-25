@@ -50,7 +50,9 @@ class Browser:
 
     async def start(self) -> None:
         if self._browser is not None:
-            raise RuntimeError("Browser already started. Call stop() before starting again.")
+            raise RuntimeError(
+                "Browser already started. Call stop() before starting again."
+            )
         self.logger.info("Starting browser in %s mode", self.config.type)
         try:
             match self.config.type:
@@ -108,7 +110,9 @@ class Browser:
 
     async def _launch_stealth(self) -> None:
         self._exit_stack = AsyncExitStack()
-        self._playwright = await self._exit_stack.enter_async_context(Stealth().use_async(async_playwright()))
+        self._playwright = await self._exit_stack.enter_async_context(
+            Stealth().use_async(async_playwright())
+        )
         self._browser = await self._playwright.chromium.launch(
             headless=self.config.headless,
             channel=self.config.channel,
@@ -118,17 +122,26 @@ class Browser:
 
     async def _connect_cdp(self) -> None:
         self._playwright = await async_playwright().start()
-        self._browser = await self._playwright.chromium.connect_over_cdp(self.config.cdp_url)
+        self._browser = await self._playwright.chromium.connect_over_cdp(
+            self.config.cdp_url
+        )
         if not self._browser.contexts:
-            raise RuntimeError("CDP browser has no open contexts. Ensure Chrome has at least one window open.")
+            raise RuntimeError(
+                "CDP browser has no open contexts. Ensure Chrome has at least one window open."
+            )
         self.context = self._browser.contexts[0]
 
     async def _context_options(self) -> dict[str, Any]:
         cfg = self.config
-        path_exists = await asyncio.to_thread(cfg.state_path.exists) if cfg.state_path else False
+        path_exists = (
+            await asyncio.to_thread(cfg.state_path.exists) if cfg.state_path else False
+        )
         storage = str(cfg.state_path) if cfg.state_path and path_exists else None
         if cfg.state_path and not path_exists:
-            self.logger.warning("State path %s does not exist; starting without stored state", cfg.state_path)
+            self.logger.warning(
+                "State path %s does not exist; starting without stored state",
+                cfg.state_path,
+            )
         w, h = cfg.viewport
         return {
             "viewport": {"width": w, "height": h},
@@ -141,7 +154,9 @@ class Browser:
     async def get_page(self, index: int = 0) -> Page:
         """Return the page at ``index``, creating a new one if it doesn't exist. Not available in CDP mode."""
         if not self.context:
-            raise RuntimeError("Browser not started. Call start() or use as async context manager.")
+            raise RuntimeError(
+                "Browser not started. Call start() or use as async context manager."
+            )
         pages = self.context.pages
         if index < len(pages):
             return pages[index]
@@ -152,7 +167,9 @@ class Browser:
         if self.config.type == BrowserType.CDP:
             raise RuntimeError("save_state() is not supported in CDP mode.")
         if not self.context:
-            raise RuntimeError("Browser not started. Call start() or use as async context manager.")
+            raise RuntimeError(
+                "Browser not started. Call start() or use as async context manager."
+            )
         save_path = Path(path) if path else self.config.state_path
         if not save_path:
             raise ValueError("No state path provided.")

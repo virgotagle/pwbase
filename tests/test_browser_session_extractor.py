@@ -1,13 +1,12 @@
 """Tests for BrowserSessionExtractor."""
 
 import json
-from unittest.mock import AsyncMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
 from pwbase import BrowserConfig, BrowserSessionExtractor, BrowserType, CapturedResponse
 from pwbase.browser_session_extractor import (
-    _DEFAULT_EXCLUDED_CONTENT_TYPES,
     AllRequestExtractor,
 )
 
@@ -47,11 +46,13 @@ def make_mock_response(
     url: str, json_body: dict | None = None, content_type: str = "application/json"
 ) -> AsyncMock:
     """Build a mock Playwright Response object."""
+    body_data = json_body or {"data": "value"}
     response = AsyncMock()
     response.url = url
     response.headers = {"content-type": content_type}
-    response.json = AsyncMock(return_value=json_body or {"data": "value"})
+    response.body = AsyncMock(return_value=json.dumps(body_data).encode())
     response.all_headers = AsyncMock(return_value={"content-type": content_type})
+    response.request = MagicMock()
     response.request.method = "GET"
     response.request.post_data = None
     response.request.all_headers = AsyncMock(
@@ -168,9 +169,7 @@ class TestRecording:
     async def test_handle_response_ignores_invalid_json(self, mock_async_playwright):
         """Verify responses that fail JSON parsing are silently skipped."""
         mock_response = make_mock_response("https://example.com/api/bad")
-        mock_response.json = AsyncMock(
-            side_effect=json.JSONDecodeError("invalid json", "", 0)
-        )
+        mock_response.body = AsyncMock(return_value=b"not valid json {{{")
 
         with patch(
             "pwbase.browser.async_playwright", return_value=mock_async_playwright

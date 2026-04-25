@@ -167,7 +167,9 @@ class TestDefaultBrowserReal:
 
     async def test_custom_viewport_applied(self):
         """Configured viewport dimensions are reflected on the opened page."""
-        config = BrowserConfig(type=BrowserType.DEFAULT, headless=True, viewport=(800, 600))
+        config = BrowserConfig(
+            type=BrowserType.DEFAULT, headless=True, viewport=(800, 600)
+        )
         async with Browser(config) as browser:
             page = await browser.get_page()
             assert page.viewport_size == {"width": 800, "height": 600}
@@ -233,13 +235,17 @@ class TestCdpBrowserReal:
         with pytest.raises(RuntimeError, match="not supported in CDP mode"):
             await browser.save_state()
 
-    @pytest.mark.skipif(not _cdp_available(), reason="No CDP endpoint on localhost:9222")
+    @pytest.mark.skipif(
+        not _cdp_available(), reason="No CDP endpoint on localhost:9222"
+    )
     async def test_connects_to_live_cdp_endpoint(self):
         """Browser attaches to an existing Chrome instance via CDP."""
         async with Browser(BrowserConfig(type=BrowserType.CDP)) as browser:
             assert isinstance(browser.context, BrowserContext)
 
-    @pytest.mark.skipif(not _cdp_available(), reason="No CDP endpoint on localhost:9222")
+    @pytest.mark.skipif(
+        not _cdp_available(), reason="No CDP endpoint on localhost:9222"
+    )
     async def test_cdp_context_not_closed_on_stop(self):
         """Stop() must not close the borrowed CDP context."""
         browser = Browser(BrowserConfig(type=BrowserType.CDP))

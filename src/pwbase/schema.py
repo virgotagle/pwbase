@@ -75,7 +75,7 @@ class CapturedResponse:
         return session
 
     @staticmethod
-    def from_json_file(filename: str = "captured_response.json") -> "CapturedResponse":
+    def from_json_file(filename: str = "captured_response.json") -> "CapturedResponse":  # pylint: disable=too-many-branches
         """Read a JSON file and convert it into a ``CapturedResponse``."""
         if not filename.strip():
             raise ValueError("filename must be a non-empty string")
@@ -123,8 +123,8 @@ class CapturedResponse:
             raise ValueError("'request_post_data' must be a string or null")
         if not isinstance(data["cookies"], list):
             raise ValueError("'cookies' must be an array")
-        if data["body"] is not None and not isinstance(data["body"], (dict, list)):
-            raise ValueError("'body' must be an object, array, or null")
+        if data["body"] is not None and not isinstance(data["body"], (dict, list, str)):
+            raise ValueError("'body' must be an object, array, string, or null")
 
         normalized_cookies: list[Cookie] = []
         for cookie in data["cookies"]:
